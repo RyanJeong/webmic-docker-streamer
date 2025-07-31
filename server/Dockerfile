@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM ubuntu:22.04
 
 LABEL maintainer="Munseong Jeong <ryan.m.jeong@hotmail.com>"
 
@@ -9,19 +9,25 @@ RUN sed -i 's/kr.archive.ubuntu.com/mirror.kakao.com/g' /etc/apt/sources.list \
   && apt-get update && apt-get install -y \
   software-properties-common \
   && add-apt-repository ppa:deadsnakes/ppa -y \
-  && apt-get update && apt-get install -y \
+  && apt-get install -y --no-install-recommends \
+  ca-certificates \
+  curl \
+  python3 \
+  python3-dev \
   python3-pip \
-  python3.8 \
-  python3.8-dev \
-  && ln -sf /usr/bin/python3.8 /usr/local/bin/python \
+  && ln -sf /usr/bin/python3 /usr/local/bin/python \
+  && python -m pip install --upgrade --no-cache-dir pip setuptools wheel \
   && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+  && rm -rf /var/lib/apt/lists/*
 
 # copy source & install deps
 WORKDIR /srv/app
 COPY server/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python -m pip install --no-cache-dir -r requirements.txt
+
 COPY server/app ./app
+
+COPY client ./client 
 
 EXPOSE 33333
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "33333"]

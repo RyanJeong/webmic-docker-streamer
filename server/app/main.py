@@ -10,46 +10,51 @@ from pathlib import Path
 from typing import Set
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse
 
 app = FastAPI()
 
-# In-memory fan-out: one writer (browser), many readers (Python apps)
-consumers: Set[WebSocket] = set()
+# Static files (Web UI)   /srv/app/client/index.html
+BASE_DIR = Path(__file__).resolve().parents[1]  # → /srv/app
+STATIC_DIR = BASE_DIR / "client"  # → /srv/app/client
 
 
 @app.get("/")
-async def index() -> HTMLResponse:
-    """Serve the static Web UI (handy for local testing)."""
-    html_file = Path(__file__).parent.parent.parent / "client" / "index.html"
-    return FileResponse(html_file)
+async def index():
+    """Serve the demo page (handy for local tests)."""
+    return FileResponse(STATIC_DIR / "index.html")
 
 
-# ───────── WebSocket end-points ─────────
+@app.get("/app.js")
+async def app_js():
+    return FileResponse(STATIC_DIR / "app.js", media_type="application/javascript")
+
+
+# ───────── WebSocket fan-out ─────────
+_consumers: Set[WebSocket] = set()
+
+
 @app.websocket("/ws/producer")
-async def websocket_producer(ws: WebSocket):
-    """Browser connects here and PUSHES binary audio frames."""
+async def ws_producer(ws: WebSocket):
     await ws.accept()
     try:
         while True:
-            data = await ws.receive_bytes()  # raw PCM / webm chunk
-            # broadcast
-            for c in consumers:
+            chunk = await ws.receive_bytes()
+            for c in _consumers:
                 try:
-                    await c.send_bytes(data)
+                    await c.send_bytes(chunk)
                 except Exception:
-                    consumers.discard(c)
+                    _consumers.discard(c)
     except WebSocketDisconnect:
         pass
 
 
 @app.websocket("/ws/consumer")
-async def websocket_consumer(ws: WebSocket):
-    """Backend Python app connects here and RECEIVES the stream."""
+async def ws_consumer(ws: WebSocket):
     await ws.accept()
-    consumers.add(ws)
+    _consumers.add(ws)
     try:
         while True:
-            await asyncio.sleep(60)  # keep connection open
+            await asyncio.sleep(30)
     except WebSocketDisconnect:
-        consumers.discard(ws)
+        _consumers.discard(ws)
