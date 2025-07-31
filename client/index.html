@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>WebMic -> Docker demo</title>
+    <style>
+      body {
+        font-family: sans-serif;
+        margin: 2rem;
+        text-align: center;
+      }
+      button {
+        font-size: 1.3rem;
+        margin: 0.5rem 1rem;
+        padding: 0.6rem 1.2rem;
+      }
+      #status {
+        margin-top: 1.5rem;
+        font-weight: bold;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Microphone -> Docker stream</h1>
+    <button id="startBtn">Start</button>
+    <button id="stopBtn" disabled>Stop</button>
+    <div id="status">Idle</div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
