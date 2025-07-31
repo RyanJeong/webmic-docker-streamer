@@ -26,7 +26,7 @@ git clone https://github.com/ryanjeong/webmic-docker-streamer.git
 cd webmic-docker-streamer
 
 # 2. build + run the Ubuntu 18.04 image
-docker build -t webmic-server ./server
+docker build -t webmic-server -f server/Dockerfile .
 docker run --rm -p 33333:33333 webmic-server
 ```
 
