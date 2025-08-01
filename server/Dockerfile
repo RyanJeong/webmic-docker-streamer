@@ -15,7 +15,7 @@ RUN sed -i 's/kr.archive.ubuntu.com/mirror.kakao.com/g' /etc/apt/sources.list \
   python3 \
   python3-dev \
   python3-pip \
-  zip \
+  unzip \
   && ln -sf /usr/bin/python3 /usr/local/bin/python \
   && python -m pip install --upgrade --no-cache-dir pip setuptools wheel \
   && apt-get clean \
