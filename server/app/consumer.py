@@ -1,33 +1,45 @@
 #!/usr/bin/env python3
 """
-Example downstream programme that connects as a consumer,
-stores 1 second chunks into "stream.raw", and prints VU-meter-ish stats.
+WebSocket consumer
+
+• Connects to ws://127.0.0.1:33333/ws/consumer
+• Each 1-second frame is 22,050 x 4B = 88,200 B (Float32, little-endian)
+• Prints "frame N  |  mean approx ..." when data arrives
+• Sits idle (no error) while producer is stopped
 """
+
 import asyncio
-import websockets
 import struct
+import websockets
 
-SINK = open("stream.raw", "wb")  # 16-bit little-endian PCM, 48 kHz by default
-
-
-def mean_amplitude(buf: bytes) -> float:
-    """Rough quick-and-dirty level meter."""
-    samples = struct.iter_unpack("<h", buf)  # int16_t little-endian
-    return sum(abs(s[0]) for s in samples) / (len(buf) // 2)
+WS_URL = "ws://127.0.0.1:33333/ws/consumer"
+FRAME_BYTES = 22_050 * 4  # 88 200 B
+BYTES_PER_F = 4  # Float32
 
 
-async def main():
-    uri = "ws://127.0.0.1:33333/ws/consumer"
-    async with websockets.connect(uri) as ws:
-        print("Connected – recording ... Ctrl-C to stop")
-        async for msg in ws:
-            SINK.write(msg)
-            amp = mean_amplitude(msg)
-            print(f"chunk {len(msg):>5} B | amp≈{amp:6.1f}")
+def mean_abs_float32(buf: bytes) -> float:
+    """Rough average"""
+    total = 0.0
+    count = len(buf) // BYTES_PER_F
+    for (sample,) in struct.iter_unpack("<f", buf):
+        total += abs(sample)
+    return total / count if count else 0.0
+
+
+async def main() -> None:
+    frame_no = 0
+    async with websockets.connect(WS_URL) as ws:
+        async for msg in ws:  # silently waits when no data
+            if len(msg) != FRAME_BYTES:
+                print(f"[WARN] unexpected size {len(msg)} B")
+                continue
+            frame_no += 1
+            level = mean_abs_float32(msg)
+            print(f"frame {frame_no:5d} | mean approx {level:7.5f}")
 
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
-    finally:
-        SINK.close()
+    except KeyboardInterrupt:
+        pass
