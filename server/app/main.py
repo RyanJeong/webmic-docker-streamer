@@ -21,7 +21,6 @@ STATIC_DIR = BASE_DIR / "client"  # → /srv/app/client
 
 @app.get("/")
 async def index():
-    """Serve the demo page (handy for local tests)."""
     return FileResponse(STATIC_DIR / "index.html")
 
 
